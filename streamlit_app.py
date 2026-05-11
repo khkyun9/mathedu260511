@@ -3,7 +3,7 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
-from sympy import Symbol, diff, simplify, latex, solve, integrate
+from sympy import Symbol, diff, simplify, latex, solve, integrate, expand, factor
 from sympy.utilities.lambdify import lambdify
 
 x = Symbol("x")
@@ -18,28 +18,28 @@ X_VALUES = np.linspace(-3.0, 3.0, 400)
 
 
 def build_polynomial_problem():
-    degree = random.choice([3, 4])  # polynomial degree 3 or 4, derivative 2 or 3
+    degree = 3  # polynomial degree 3, derivative 2
     roots = random.sample(range(-4, 5), degree)
-    leading_coefficient = random.choice([1, -1, 2, -2, 3, -3])
+    leading_coefficient = random.choice([1, -1, 2, -2])
 
     polynomial = leading_coefficient
     for root in roots:
         polynomial *= (x - root)
-    polynomial = simplify(polynomial)
+    polynomial = expand(polynomial)
 
-    derivative = simplify(diff(polynomial, x))
+    derivative = factor(simplify(diff(polynomial, x)))
 
     wrong_derivatives = []
     while len(wrong_derivatives) < 2:
-        wrong_degree = random.choice([3, 4])
+        wrong_degree = 3
         wrong_roots = random.sample(range(-4, 5), wrong_degree)
-        wrong_leading = random.choice([1, -1, 2, -2, 3, -3])
+        wrong_leading = random.choice([1, -1, 2, -2])
 
         wrong_poly = wrong_leading
         for root in wrong_roots:
             wrong_poly *= (x - root)
-        wrong_poly = simplify(wrong_poly)
-        wrong_derivative = simplify(diff(wrong_poly, x))
+        wrong_poly = expand(wrong_poly)
+        wrong_derivative = factor(simplify(diff(wrong_poly, x)))
 
         if wrong_derivative != derivative and wrong_derivative not in wrong_derivatives:
             wrong_derivatives.append(wrong_derivative)
@@ -64,14 +64,14 @@ def build_polynomial_problem():
     # 잘못된 그래프 생성
     wrong_polys = []
     while len(wrong_polys) < 2:
-        w_degree = random.choice([3, 4])
+        w_degree = 3
         w_roots = random.sample(range(-4, 5), w_degree)
-        w_leading = random.choice([1, -1, 2, -2, 3, -3])
+        w_leading = random.choice([1, -1, 2, -2])
 
         w_poly = w_leading
         for root in w_roots:
             w_poly *= (x - root)
-        w_poly = simplify(w_poly)
+        w_poly = expand(w_poly)
 
         if w_poly != polynomial and w_poly not in wrong_polys:
             wrong_polys.append(w_poly)
@@ -118,17 +118,18 @@ def render_derivative_problem(problem):
     st.latex(r"f(x) = %s" % latex(problem["polynomial"]))
 
     st.subheader("도함수 그래프")
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = plt.subplots(figsize=(5, 2))
     plot_curve(problem["derivative"], X_VALUES, ax)
     ax.set_xlabel("x")
     ax.set_ylabel("f'(x)")
+    ax.set_ylim(-20, 20)
     st.pyplot(fig)
 
     st.subheader("후보 도함수 식")
     cols = st.columns(3)
     for col, (label, expr) in zip(cols, problem["candidates"]):
         col.markdown(f"**{label}**")
-        col.latex(r"%s" % latex(expr))
+        col.latex(r"%s" % latex(factor(expr)))
 
 
 def render_extrema_table(problem):
@@ -194,10 +195,15 @@ if st.session_state["stage"] == "derivative":
     if st.button("도함수 확인"):
         st.session_state["user_answer"] = answer
         if answer == problem["correct_label"]:
-            st.success("정답입니다! 다음 단계로 진행하세요.")
-            st.session_state["stage"] = "extrema"
+            st.session_state["stage"] = "derivative_correct"
         else:
             st.error(f"틀렸습니다. 올바른 답은 {problem['correct_label']}입니다.")
+
+elif st.session_state["stage"] == "derivative_correct":
+    render_derivative_problem(problem)
+    st.success("정답입니다!")
+    if st.button("다음 단계로", key="next_step"):
+        st.session_state["stage"] = "extrema"
 
 elif st.session_state["stage"] == "extrema":
     render_derivative_problem(problem)
