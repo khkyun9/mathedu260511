@@ -17,29 +17,28 @@ st.write(
 X_VALUES = np.linspace(-3.0, 3.0, 400)
 
 
+
 def build_polynomial_problem():
-    degree = 3  # polynomial degree 3, derivative 2
-    roots = random.sample(range(-4, 5), degree)
-    leading_coefficient = random.choice([1, -1, 2, -2])
+    # derivative roots are integers and the polynomial has integer coefficients
+    derivative_roots = random.sample(range(-2, 3), 2)
+    leading_coefficient = random.choice([3, -3, 6, -6])
 
-    polynomial = leading_coefficient
-    for root in roots:
-        polynomial *= (x - root)
-    polynomial = expand(polynomial)
-
-    derivative = factor(simplify(diff(polynomial, x)))
+    derivative = expand(
+        leading_coefficient
+        * (x - derivative_roots[0])
+        * (x - derivative_roots[1])
+    )
+    constant_term = random.randint(-5, 5)
+    polynomial = expand(integrate(derivative, x) + constant_term)
 
     wrong_derivatives = []
     while len(wrong_derivatives) < 2:
-        wrong_degree = 3
-        wrong_roots = random.sample(range(-4, 5), wrong_degree)
-        wrong_leading = random.choice([1, -1, 2, -2])
+        wrong_roots = random.sample(range(-4, 5), 2)
+        wrong_leading = random.choice([6, -6, 12, -12])
 
-        wrong_poly = wrong_leading
-        for root in wrong_roots:
-            wrong_poly *= (x - root)
-        wrong_poly = expand(wrong_poly)
-        wrong_derivative = factor(simplify(diff(wrong_poly, x)))
+        wrong_derivative = expand(
+            wrong_leading * (x - wrong_roots[0]) * (x - wrong_roots[1])
+        )
 
         if wrong_derivative != derivative and wrong_derivative not in wrong_derivatives:
             wrong_derivatives.append(wrong_derivative)
@@ -129,7 +128,7 @@ def render_derivative_problem(problem):
     cols = st.columns(3)
     for col, (label, expr) in zip(cols, problem["candidates"]):
         col.markdown(f"**{label}**")
-        col.latex(r"%s" % latex(factor(expr)))
+        col.latex(r"%s" % latex(expand(expr)))
 
 
 def render_extrema_table(problem):
@@ -152,7 +151,13 @@ def render_extrema_table(problem):
         user_extrema.append((x_input, y_input))
 
     if st.button("극값 확인"):
-        correct = all(abs(ux - cx) < 0.1 and abs(uy - cy) < 0.1 for (ux, uy), (cx, cy) in zip(user_extrema, extrema))
+        sorted_user = sorted(user_extrema, key=lambda p: p[0])
+        sorted_correct = sorted(extrema, key=lambda p: p[0])
+            
+        correct = all(
+        abs(ux - cx) < 0.1 and abs(uy - cy) < 0.1
+        for (ux, uy), (cx, cy) in zip(sorted_user, sorted_correct)
+    )
         if correct:
             st.success("극값이 맞습니다! 다음 단계로 진행하세요.")
             return True
@@ -196,6 +201,7 @@ if st.session_state["stage"] == "derivative":
         st.session_state["user_answer"] = answer
         if answer == problem["correct_label"]:
             st.session_state["stage"] = "derivative_correct"
+            st.rerun()
         else:
             st.error(f"틀렸습니다. 올바른 답은 {problem['correct_label']}입니다.")
 
@@ -204,12 +210,14 @@ elif st.session_state["stage"] == "derivative_correct":
     st.success("정답입니다!")
     if st.button("다음 단계로", key="next_step"):
         st.session_state["stage"] = "extrema"
+        st.rerun()
 
 elif st.session_state["stage"] == "extrema":
     render_derivative_problem(problem)
     if render_extrema_table(problem):
         st.session_state["extrema_correct"] = True
         st.session_state["stage"] = "graph"
+        st.rerun()
 
 elif st.session_state["stage"] == "graph":
     render_derivative_problem(problem)
