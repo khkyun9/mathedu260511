@@ -11,7 +11,7 @@ x = Symbol("x")
 st.set_page_config(page_title="다항함수 도함수 및 그래프 퀴즈", layout="wide")
 st.title("📊 다항함수 도함수 및 그래프 퀴즈")
 st.write(
-    "랜덤으로 생성한 다항함수 식을 보고, 도함수를 선택한 후 극값을 입력하고 올바른 그래프 개형을 고르세요."
+    "랜덤으로 생성한 다항함수 식을 보고, 도함수를 선택한 후 극값을 입력하고 올바른 그래프 개형을 고르세요. (총 3단계)"
 )
 
 X_VALUES = np.linspace(-3.0, 3.0, 400)
@@ -130,7 +130,7 @@ def render_derivative_problem(problem):
     cols = st.columns(3)
     for col, (label, expr) in zip(cols, problem["candidates"]):
         col.markdown(f"**{label}**")
-        col.latex(r"%s" % latex(expand(expr)))
+        col.latex(r"f'(x) = %s" % latex(expand(expr)))
 
 
 def render_extrema_table(problem, readonly=False):
